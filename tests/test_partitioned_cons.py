@@ -34,9 +34,11 @@ fc1.add_topic(topic,part0, (0,))
 # Or could have given
 # fc.add_topic(topic, callback_for_1_and_2, (1,2))
 
+# This will pass only if number of partitions for the topic >=2
 fc2 =  FeedConsumer(srv, group ='TestGroup')
 fc2.add_topic(topic,part1, (1,))
 
+# This will pass only if number of partitions for the topic is = 3.
 fc3 =  FeedConsumer(srv, group ='TestGroup')
 fc3.add_topic(topic,part2, (2,))
 

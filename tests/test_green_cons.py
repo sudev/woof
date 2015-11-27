@@ -15,7 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger('kafka')
 logger.setLevel(logging.INFO)
 
-srv = os.getenv("GOMSG_SRV","localhost:9092")
+srv = os.getenv("GOMSG_SRV", "localhost:9092")
 
 def dummy(key, value):
     print "[GREEN]  %s" % (str(value))
@@ -24,7 +24,7 @@ def callback_xx(key, value):
     print "[GREEN_XX]  %s" % (str(value))
 
 
-fc = GreenFeedConsumer(srv,  group ='TestGroup')
+fc = GreenFeedConsumer(srv, group ='TestGroup')
 print srv
 print "listing to topic %s"%(topic)
 fc.add_topic(topic, dummy)

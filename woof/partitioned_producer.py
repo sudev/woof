@@ -63,6 +63,9 @@ class PartitionedProducer(Producer):
         return self.partitions[topic][self.hash_fn(key) % len(self.partitions[topic])]
     
     def send(self, topic, key, *msg):
+
+        if not msg:
+            raise TypeError("Message field cannot be empty.")
         try:
             topic = kafka_bytestring(topic)
             partition = self._next_partition(topic, key)
