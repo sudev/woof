@@ -85,7 +85,7 @@ class CyclicPartitionedProducer(PartitionedProducer):
     def __init__(self, broker, random_start=True):
         self.partition_cycles = {}
         self.random_start = random_start
-        super(CyclicPartitionedProducer, self).__init__(self.broker)
+        super(CyclicPartitionedProducer, self).__init__(broker)
 
     def _next_partition(self, topic):
         if topic not in self.partition_cycles:
