@@ -87,7 +87,7 @@ class CyclicPartitionedProducer(PartitionedProducer):
         self.random_start = random_start
         super(CyclicPartitionedProducer, self).__init__(broker)
 
-    def _next_partition(self, topic):
+    def _next_partition(self, topic, key):
         if topic not in self.partition_cycles:
             if not self.client.has_metadata_for_topic(topic):
                 self.client.load_metadata_for_topics(topic)
