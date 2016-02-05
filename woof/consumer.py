@@ -1,4 +1,4 @@
-import threading, logging, time
+import threading, logging, time, signal
 
 from kafka import KafkaConsumer
 from kafka.common import LeaderNotAvailableError,KafkaUnavailableError
@@ -25,10 +25,13 @@ class FeedConsumer(threading.Thread):
 
     """
     daemon = True
-    
+
     def __init__(self, broker, group, offset='largest', commit_every_t_ms=1000,
-                 parts=None):
+                 parts=None, kill_signal=signal.SIGTERM):
         self.brokerurl = broker
+        self.kill_signal = kill_signal
+        self.exit_consumer = False
+        self.create_kill_signal_handler()
         try:
             self.cons = KafkaConsumer(bootstrap_servers=broker,
                                       auto_offset_reset=offset,
@@ -75,7 +78,6 @@ class FeedConsumer(threading.Thread):
 
     def remove_topic(self, topic,  parts=None):
         try:
-
             if parts is None:
                 self.topics.remove(topic)
             else:
@@ -87,6 +89,17 @@ class FeedConsumer(threading.Thread):
         log.info(" FeedConsumer : removed topic %s", topic)
         self.cons.set_topic_partitions(*self.topics)
 
+    def create_kill_signal_handler(self):
+
+        def set_stop_signal(signal, frame):
+            self.exit_consumer = True
+
+        signal.signal(self.kill_signal, set_stop_signal)
+
+    def check_for_exit_criteria(self):
+        if self.exit_consumer:
+            self.cons.commit()
+            exit(0)
 
     def run(self):
         while True:
@@ -94,6 +107,8 @@ class FeedConsumer(threading.Thread):
                 for m in self.cons.fetch_messages():
                     self.callbacks[m.topic](m.key, m.value)
                     self.cons.task_done(m)
+                    self.check_for_exit_criteria()
+                self.check_for_exit_criteria()
             except:
                 time.sleep(1)
                 continue
