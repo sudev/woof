@@ -1,13 +1,16 @@
+from itertools import cycle
 import logging
 from kafka.client import KafkaClient
 from kafka.producer import Producer
 from kafka.common import LeaderNotAvailableError,KafkaUnavailableError
 from kafka.util import kafka_bytestring
+import random
 
 log = logging.getLogger("kafka")
 
 BATCH_SEND_DEFAULT_INTERVAL = 20
 BATCH_SEND_MSG_COUNT = 20
+
 
 def dumb_hash(key):
     sum = 0
@@ -16,6 +19,7 @@ def dumb_hash(key):
         sum += ord(s)
 
     return sum
+
 
 class PartitionedProducer(Producer):
     """
@@ -62,13 +66,38 @@ class PartitionedProducer(Producer):
 
         return self.partitions[topic][self.hash_fn(key) % len(self.partitions[topic])]
     
-    def send(self, topic, key, *msg):
+    def send(self, topic, key, *msg, **kwargs):
         try:
             topic = kafka_bytestring(topic)
-            partition = self._next_partition(topic, key)
+            partition = kwargs.get('partition', None)
+            if not partition:
+                partition = self._next_partition(topic, key)
             return self._send_messages(topic, partition, *msg, key=key)
         except LeaderNotAvailableError:
             self.client.ensure_topic_exists(topic)
             return self.send(topic, *msg)
         except:
             raise
+
+
+class CyclicPartitionedProducer(PartitionedProducer):
+
+    def __init__(self, broker, random_start=True):
+        self.partition_cycles = {}
+        self.random_start = random_start
+        super(CyclicPartitionedProducer, self).__init__(broker)
+
+    def _next_partition(self, topic, key):
+        if topic not in self.partition_cycles:
+            if not self.client.has_metadata_for_topic(topic):
+                self.client.load_metadata_for_topics(topic)
+
+            self.partition_cycles[topic] = cycle(self.client.get_partition_ids_for_topic(topic))
+
+            # Randomize the initial partition that is returned
+            if self.random_start:
+                num_partitions = len(self.client.get_partition_ids_for_topic(topic))
+                for _ in xrange(random.randint(0, num_partitions-1)):
+                    next(self.partition_cycles[topic])
+
+        return next(self.partition_cycles[topic])

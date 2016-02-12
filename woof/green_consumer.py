@@ -1,5 +1,6 @@
 from gevent import monkey; monkey.patch_all()
 import threading, logging, gevent, time
+import signal
 
 from kafka import KafkaConsumer
 from kafka.common import KafkaUnavailableError
@@ -23,13 +24,19 @@ class GreenFeedConsumer(threading.Thread):
     offset='smallest' : read all msgs from beginning of time;  default read fresh
 
     commit_every_t_ms:  How much time (in milliseconds) to before commit to zookeeper
+    kill_signal: What is the kill signal to handle exit gracefully.
+    wait_time_before_exit: How much time to wait before exiting green threads
 
     """
     daemon = True
     
     def __init__(self, broker, group, offset='largest', commit_every_t_ms=1000,
-                 parts=None):
+                 parts=None, kill_signal=signal.SIGTERM, wait_time_before_exit=10):
         self.brokerurl = broker
+        self.kill_signal = kill_signal
+        self.exit_consumer = False
+        self.wait_time_before_exit = wait_time_before_exit
+        self.create_kill_signal_handler()
         try:
             self.cons = KafkaConsumer(bootstrap_servers=broker,
                                       auto_offset_reset=offset,
@@ -88,15 +95,30 @@ class GreenFeedConsumer(threading.Thread):
         log.info(" GreenConsumer : removed topic %s", topic)
         self.cons.set_topic_partitions(*self.topics)
 
+    def create_kill_signal_handler(self):
+
+        def set_stop_signal(signal, frame):
+            self.exit_consumer = True
+
+        signal.signal(self.kill_signal, set_stop_signal)
+
     def wrap(self, callback, mesg):
         callback(mesg.key, mesg.value)
         self.cons.task_done(mesg)
+
+    def check_for_exit_criteria(self):
+        if self.exit_consumer:
+            time.sleep(self.wait_time_before_exit)
+            self.cons.commit()
+            exit(0)
 
     def run(self):
         while True:
             try:
                 for m in self.cons.fetch_messages():
                     gevent.spawn(self.wrap, self.callbacks[m.topic], m)
+                    self.check_for_exit_criteria()
+                self.check_for_exit_criteria()
             except:
                 time.sleep(1)
                 continue
