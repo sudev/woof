@@ -1,9 +1,10 @@
-import  logging
+import logging
 from kafka.client import KafkaClient
 from kafka.producer import SimpleProducer
 from kafka.common import LeaderNotAvailableError,KafkaUnavailableError
 
 log = logging.getLogger("kafka")
+
 
 class FeedProducer():
     """
@@ -29,5 +30,3 @@ class FeedProducer():
             return self.send(topic, *msgs)
         except:
             raise
-    
-     
