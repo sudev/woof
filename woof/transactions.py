@@ -27,7 +27,7 @@ class TransactionLogger():
         """
         Generates log message.
         """
-        separator = '\t\x01'
+        separator = '\t'
         return separator.join([verb, txn_id, str(amount), skus, detail, userid, email, phone])
 
 

@@ -5,7 +5,7 @@ import time
 from woof.transactions import TransactionLogger
 
 stime = time.time()
-tr = TransactionLogger("nmlgoibibofe65:9092", "transaction_dummy")
+tr = TransactionLogger("localhost:9092", "transaction_dummy")
 print "Time taken for connection: ", time.time() - stime
 
 stime = time.time()
