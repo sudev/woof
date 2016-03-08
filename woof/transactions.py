@@ -13,6 +13,7 @@ class TransactionLogger():
         self.vertical = vertical
         self.producer = PartitionedProducer(broker,async=async)
         self.topic = _get_topic_from_vertical(vertical)
+        print self.topic
 
     def New(self, txn_id, amount, skus, detail="#", userid="#", email="#", phone="#"):
         self._send_log("NEW", txn_id, amount, skus, detail, userid, email, phone)
@@ -38,10 +39,8 @@ class TransactionLogger():
         """
         separator = '\t'
         skus_as_string = ",".join(skus)
-        return "[%s %s] %s" % (self.this_host,
-                               time.time(),
-                               separator.join([verb, txn_id, str(amount), skus_as_string, detail, userid, email, phone])
-                               )
+        return "%s" % (separator.join([self.this_host, str(time.time()), verb, txn_id,
+                       str(amount), skus_as_string, detail, userid, email, phone]))
 
 
 def _get_topic_from_vertical(vertical):
