@@ -38,10 +38,8 @@ class TransactionLogger():
         """
         separator = '\t'
         skus_as_string = ",".join(skus)
-        return "[%s %s] %s" % (self.this_host,
-                               time.time(),
-                               separator.join([verb, txn_id, str(amount), skus_as_string, detail, userid, email, phone])
-                               )
+        return separator.join([self.this_host, str(time.time()), verb, txn_id,
+                       str(amount), skus_as_string, detail, userid, email, phone])
 
 
 def _get_topic_from_vertical(vertical):
