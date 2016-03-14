@@ -34,7 +34,7 @@ class TransactionLogger(object):
         try:
             woof_tls.producer.send(self.topic, txn_id, msg)
         except AttributeError:
-            woof_tls.producer = PartitionedProducer(broker, async=self.async)
+            woof_tls.producer = PartitionedProducer(self.broker, async=self.async)
             self._send_log(verb, txn_id, amount, skus, detail, userid, email, phone)
 
     def _format_message(self, verb, txn_id, amount, skus, detail, userid, email, phone):
