@@ -8,13 +8,12 @@ log = logging.getLogger("kafka")
 woof_tls = threading.local()
 
 
-class TransactionLogger():
+class TransactionLogger(object):
     def __init__(self, broker, vertical, host=socket.gethostname(), async=False):
         self.broker = broker
         self.this_host = host
         self.vertical = vertical
         self.async = async
-        woof_tls.producer = PartitionedProducer(broker, async=async)
         self.topic = _get_topic_from_vertical(vertical)
 
     def New(self, txn_id, amount, skus, detail="#", userid="#", email="#", phone="#"):
@@ -36,7 +35,7 @@ class TransactionLogger():
             woof_tls.producer.send(self.topic, txn_id, msg)
         except AttributeError:
             woof_tls.producer = PartitionedProducer(broker, async=self.async)
-            return self._send_log(verb, txn_id, amount, skus, detail, userid, email, phone)
+            self._send_log(verb, txn_id, amount, skus, detail, userid, email, phone)
 
     def _format_message(self, verb, txn_id, amount, skus, detail, userid, email, phone):
         """
