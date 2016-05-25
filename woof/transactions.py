@@ -30,7 +30,6 @@ class TransactionLogger(object):
 
     def _send_log(self, verb, txn_id, amount, skus, detail="#", userid="#", email="#", phone="#"):
         msg = self._format_message(verb, txn_id, amount, skus, detail, userid, email, phone)
-        print ("[transactions log] topic %s txnid %s msg %s \n", self.topic, txn_id, msg)
         log.info("[transactions log] topic %s txnid %s msg %s \n", self.topic, txn_id, msg)
         try:
             woof_tls.producer.send(self.topic, txn_id, msg)
