@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import logging
 import time
@@ -32,7 +33,7 @@ def thread_test():
            amount=3500,
            skus=["vcid_1", "vhid_1"],
            detail="{'foo':'bar'}",
-           userid="rohith2506",
+           userid= u'मेरा नाम',
            email="r1@gmail.com",
            phone="8984758345345")
     print "Time taken to send one message: ", time.time() - stime
@@ -49,9 +50,11 @@ def thread_test():
 
     # Fulfil
     tr.Fulfil(txn_id="gofld3434",
+              skus=[u'aaaàçççñññ'],
+              userid='मेरा नाम',
               phone="8984758345345")
 
-for i in range(10):
+for i in range(2):
     thread.start_new_thread(thread_test,())
 
 

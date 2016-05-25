@@ -42,10 +42,30 @@ class TransactionLogger(object):
         Generates log message.
         """
         separator = '\t'
-        skus_as_string = ",".join(skus)
-        return separator.join([self.this_host, str(time.time()), verb, txn_id,
-                       str(amount), skus_as_string, detail, userid, email, phone])
+
+        safe_skus = [_make_kafka_safe(x) for x in skus]
+        skus_as_string = ",".join(safe_skus)
+
+        return separator.join([self.this_host,
+                               str(time.time()),
+                               verb,
+                               _make_kafka_safe(txn_id),
+                               _make_kafka_safe(amount),
+                               skus_as_string,
+                               _make_kafka_safe(detail),
+                               _make_kafka_safe(userid),
+                               _make_kafka_safe(email),
+                               _make_kafka_safe(phone)])
 
 
 def _get_topic_from_vertical(vertical):
     return "_".join(["TRANSACTIONS", vertical])
+
+
+def _make_kafka_safe(input):
+    if type(input) != unicode:
+        input = str(input)
+        input = input.decode('utf-8')
+        return input.encode('ascii','ignore')
+    else:
+        return input.encode('ascii','ignore')
