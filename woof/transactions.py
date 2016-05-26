@@ -3,6 +3,7 @@ import socket
 import time
 import logging
 import threading
+import kafka.common
 
 log = logging.getLogger("kafka")
 woof_tls = threading.local()
@@ -36,6 +37,16 @@ class TransactionLogger(object):
         except AttributeError:
             woof_tls.producer = PartitionedProducer(self.broker, async=self.async)
             self._send_log(verb, txn_id, amount, skus, detail, userid, email, phone)
+        except  kafka.common.FailedPayloadsError as e:
+            log.error("[transactions log] SOCKET ERROR %s topic %s txnid %s msg %s \n", str(e), self.topic, txn_id, msg)
+            woof_tls.producer.client.close()
+            woof_tls.producer = PartitionedProducer(self.broker, async=self.async)
+            self._send_log(verb, txn_id, amount, skus, detail, userid, email, phone)
+        except Exception as e1 :
+            log.error("[transactions log] GEN error ERROR %s topic %s txnid %s msg %s \n", str(e1), self.topic, txn_id, msg)
+            raise e1
+
+
 
     def _format_message(self, verb, txn_id, amount, skus, detail, userid, email, phone):
         """
