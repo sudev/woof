@@ -107,7 +107,8 @@ class FeedConsumer(threading.Thread):
                 for m in self.cons.fetch_messages():
                     self.callbacks[m.topic](m.key, m.value)
                     self.cons.task_done(m)
-                    self.cons.commit()
+                    # uncomment for consumer to work safely
+                    #self.cons.commit()
                     self.check_for_exit_criteria()
                 self.check_for_exit_criteria()
             except:

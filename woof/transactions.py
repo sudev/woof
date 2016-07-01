@@ -37,7 +37,7 @@ class TransactionLogger(object):
         except AttributeError:
             woof_tls.producer = PartitionedProducer(self.broker, async=self.async)
             self._send_log(verb, txn_id, amount, skus, detail, userid, email, phone)
-        except  kafka.common.FailedPayloadsError, kafka.common.KafkaUnavailableError:
+        except  ( kafka.common.FailedPayloadsError , kafka.common.KafkaUnavailableError ) as e:
             print("[transactions log] SOCKET ERROR %s topic %s txnid %s msg %s \n", str(e), self.topic, txn_id, msg)
             log.error("[transactions log] SOCKET ERROR %s topic %s txnid %s msg %s \n", str(e), self.topic, txn_id, msg)
             woof_tls.producer.client.close()
