@@ -1,9 +1,17 @@
 import threading, logging, time, signal
 
-from kafka_old import KafkaConsumer
-from kafka_old.common import LeaderNotAvailableError,KafkaUnavailableError
+from kafka import KafkaConsumer
+from kafka.errors import KafkaTimeoutError
 
 log = logging.getLogger("kafka")
+
+
+class WoofConsumerError(RuntimeError):
+    pass
+
+class WoofNotSupported(WoofConsumerError):
+    pass
+
 
 class FeedConsumer(threading.Thread):
     """Threaded gomsg feed consumer
@@ -26,26 +34,34 @@ class FeedConsumer(threading.Thread):
     """
     daemon = True
 
-    def __init__(self, broker, group, offset='largest', commit_every_t_ms=1000,
-                 parts=None, kill_signal=signal.SIGTERM):
+    def __init__(self,
+                 broker,
+                 group,
+                 offset='largest',
+                 commit_every_t_ms=1000,
+                 parts=None,
+                 kill_signal=signal.SIGTERM,
+                 wait_time_before_exit=1):
         self.brokerurl = broker
         self.kill_signal = kill_signal
         self.exit_consumer = False
         self.create_kill_signal_handler()
+        self.wait_time_before_exit = wait_time_before_exit
+
         try:
             self.cons = KafkaConsumer(bootstrap_servers=broker,
                                       auto_offset_reset=offset,
-                                      auto_commit_enable=True,
+                                      enable_auto_commit=True,
                                       auto_commit_interval_ms=commit_every_t_ms,
                                       group_id=group
                                       )
-        except KafkaUnavailableError:
-            log.critical( "\nCluster Unavailable %s : Check broker string\n", broker)
-            raise
-        except:
-            raise
+        except KafkaTimeoutError as e:
+            log.error("[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s /n", str(e), broker)
+            raise e
+        except Exception as e1:
+            log.error("[feedconsumer log] INIT err %s \n", str(e1))
+            raise e1
 
-        self.topics = []
         self.callbacks = {}
         super(FeedConsumer, self).__init__()
 
@@ -63,55 +79,58 @@ class FeedConsumer(threading.Thread):
         parts (list) : tuple of the partitions to listen to
 
         """
-        self.callbacks[topic] = todo
+        try :
+            self.callbacks[topic] = todo
 
-        if parts is None:
-            log.info(" FeedConsumer : adding topic %s ", topic)
-            self.topics.append(topic)
-        else:
-              for part in parts:
-                  log.info(" FeedConsumer : adding topic %s %s", topic , part)
-                  self.topics.append((topic,part))
+            if parts is None:
+                log.info("[feedconsumer log] : adding topic %s ", topic)
+            else:
+                raise WoofNotSupported("manual partition assignement not supported")
 
-        self.cons._client.ensure_topic_exists(topic)
-        self.cons.set_topic_partitions(*self.topics)
+            self.cons.subscribe(topics=self.callbacks.keys())
+        except Exception as e :
+            log.error("[feedconsumer log] add_topic err %s /n", str(e))
+            raise  e
 
     def remove_topic(self, topic,  parts=None):
+        if parts is not None:
+            raise WoofNotSupported("manual partition assignement not supported")
+
         try:
-            if parts is None:
-                self.topics.remove(topic)
-            else:
-                for part in parts:
-                    self.topics.remove((topic,part))
-        except:
-            log.critical("FeedConsumer : no such topic %s", topic)
-            return
-        log.info(" FeedConsumer : removed topic %s", topic)
-        self.cons.set_topic_partitions(*self.topics)
+            self.cons.unsubscribe()
+            del self.callbacks[topic]
+            self.cons.subscribe(topics=self.callbacks.keys())
+        except Exception as e :
+            log.error("[feedconsumer log] remove_topic err %s /n", str(e))
+            raise  e
 
     def create_kill_signal_handler(self):
-
         def set_stop_signal(signal, frame):
             self.exit_consumer = True
-
         signal.signal(self.kill_signal, set_stop_signal)
 
     def check_for_exit_criteria(self):
         if self.exit_consumer:
             self.cons.commit()
+            time.sleep(self.wait_time_before_exit)
             exit(0)
 
     def run(self):
         while True:
             try:
-                for m in self.cons.fetch_messages():
+                for m in self.cons:
                     self.callbacks[m.topic](m.key, m.value)
-                    self.cons.task_done(m)
-                    # uncomment for consumer to work safely
+                    # Looks like in kakfa-python,  the generator namely (fetcher._message_generator), stores offset in
+                    # the next call to __next__
+                    # https://github.com/dpkp/kafka-python/blob/master/kafka/consumer/fetcher.py
+                    # TODO verfiy
+
+
+                    # uncomment for consumer to work "extra" safely
                     #self.cons.commit()
                     self.check_for_exit_criteria()
                 self.check_for_exit_criteria()
-            except:
+            except Exception as e :
+                log.error("[feedconsumer log] thread run  err %s ..continuing../n", str(e))
                 time.sleep(1)
-                continue
 

@@ -28,7 +28,7 @@ class FeedProducer():
             for msg in msgs:
                 print "Sending " + msg
                 self.prod.send(topic, msg)
-            log.info("[feedproducer log] about to flush.. topic %s msg %s ", topic,str(msgs))
+            log.info("[feedproducer log] about to flush.. topic %s msg %s /n", topic,str(msgs))
             self.prod.flush()
         except KafkaTimeoutError as e :
             log.error("[feedproducer log] KafkaTimeoutError err %s topic %s  /n", str(e), topic)
