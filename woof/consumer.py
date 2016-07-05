@@ -1,7 +1,7 @@
 import threading, logging, time, signal
 
-from kafka import KafkaConsumer
-from kafka.common import LeaderNotAvailableError,KafkaUnavailableError
+from kafka_old import KafkaConsumer
+from kafka_old.common import LeaderNotAvailableError,KafkaUnavailableError
 
 log = logging.getLogger("kafka")
 

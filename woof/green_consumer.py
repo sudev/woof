@@ -2,8 +2,8 @@ from gevent import monkey; monkey.patch_all()
 import threading, logging, gevent, time
 import signal
 
-from kafka import KafkaConsumer
-from kafka.common import KafkaUnavailableError
+from kafka_old import KafkaConsumer
+from kafka_old.common import KafkaUnavailableError
 log = logging.getLogger("kafka")
 
 class GreenFeedConsumer(threading.Thread):

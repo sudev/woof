@@ -21,10 +21,10 @@ setup(
 
     packages=[
         "woof",
-        "kafka",
-        "kafka.consumer",
-        "kafka.partitioner",
-        "kafka.producer",
+        "kafka_old",
+        "kafka_old.consumer",
+        "kafka_old.partitioner",
+        "kafka_old.producer",
     ],
 
     author="Jyotiswarup Raiturkar",

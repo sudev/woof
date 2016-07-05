@@ -15,7 +15,7 @@ else :
 logging.basicConfig(
     format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
     filename='/tmp/kafkalog',
-    level=logging.INFO
+    level=logging.DEBUG
     )
 
 logger = logging.getLogger('kafka')
