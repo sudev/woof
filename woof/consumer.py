@@ -2,15 +2,11 @@ import threading, logging, time, signal
 
 from kafka import KafkaConsumer
 from kafka.errors import KafkaTimeoutError
+from .common import WoofNotSupported
 
 log = logging.getLogger("kafka")
 
 
-class WoofConsumerError(RuntimeError):
-    pass
-
-class WoofNotSupported(WoofConsumerError):
-    pass
 
 
 class FeedConsumer(threading.Thread):
@@ -37,7 +33,7 @@ class FeedConsumer(threading.Thread):
     def __init__(self,
                  broker,
                  group,
-                 offset='largest',
+                 offset='latest',
                  commit_every_t_ms=1000,
                  parts=None,
                  kill_signal=signal.SIGTERM,
@@ -45,7 +41,12 @@ class FeedConsumer(threading.Thread):
         self.brokerurl = broker
         self.kill_signal = kill_signal
         self.exit_consumer = False
-        self.create_kill_signal_handler()
+        try :
+            self.create_kill_signal_handler()
+        except Exception as e:
+            log.error("[feedconsumer log] exception %s. Skipping signal handler install. ", str(e))
+            pass
+
         self.wait_time_before_exit = wait_time_before_exit
 
         try:

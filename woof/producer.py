@@ -13,22 +13,36 @@ class FeedProducer():
     use send() to send to any topic
     """
 
-    def __init__(self, broker, retries=3):
+    def __init__(self, broker, retries=3, async=False):
         try:
             self.prod = KafkaProducer(bootstrap_servers=broker,
                                       key_serializer=make_kafka_safe,
                                       value_serializer=make_kafka_safe,
                                       retries=retries)
+            self.async = async
         except Exception as e:
             log.error("[feedproducer log] Constructor error ERROR %s  /n", str(e))
             raise
 
+
+
     def send(self, topic,  *msgs):
         try:
             for msg in msgs:
-                print "Sending " + msg
                 self.prod.send(topic, msg)
-            log.info("[feedproducer log] about to flush.. topic %s msg %s /n", topic,str(msgs))
+            log.debug("[feedproducer log] about to flush.. topic %s msg %s /n", topic,str(msgs))
+
+            if not self.async:
+                self.prod.flush()
+        except KafkaTimeoutError as e :
+            log.error("[feedproducer log] KafkaTimeoutError err %s topic %s  /n", str(e), topic)
+            raise e
+        except Exception as e1:
+            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1), topic)
+            raise e1
+
+    def flush(self):
+        try:
             self.prod.flush()
         except KafkaTimeoutError as e :
             log.error("[feedproducer log] KafkaTimeoutError err %s topic %s  /n", str(e), topic)

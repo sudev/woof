@@ -20,11 +20,7 @@ setup(
     version=__version__,
 
     packages=[
-        "woof",
-        "kafka_old",
-        "kafka_old.consumer",
-        "kafka_old.partitioner",
-        "kafka_old.producer",
+        "woof"
     ],
 
     author="Jyotiswarup Raiturkar",

@@ -6,6 +6,7 @@ import signal
 import sys, traceback
 
 from .consumer import FeedConsumer
+from .common import WoofNotSupported
 
 log = logging.getLogger("kafka")
 
@@ -42,6 +43,12 @@ class GreenFeedConsumer(FeedConsumer):
                  parts=None,
                  kill_signal=signal.SIGTERM,
                  wait_time_before_exit=1):
+
+        # TODO
+        # getting issues with gevent and kafka-python (select to be specific)
+        # https://github.com/dpkp/kafka-python/issues/702
+        # unsupported till them
+        raise WoofNotSupported("GreenFeedConsumer  not supported")
 
         super(GreenFeedConsumer, self).__init__(broker, group, offset, commit_every_t_ms, parts, kill_signal,
                                                 wait_time_before_exit)
