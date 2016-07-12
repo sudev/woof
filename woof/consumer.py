@@ -22,7 +22,9 @@ class FeedConsumer(threading.Thread):
     group (str): the name of the consumer group to join, Offsets are fetched /
     committed to this group name.
 
-    offset='smallest' : read all msgs from beginning of time;  default read fresh
+    offset='earliest' : read all msgs from beginning of time;  default read fresh
+
+    async=True : In case of Zk commit offset everytime
 
     commit_every_t_ms:  How much time (in milliseconds) to before commit to zookeeper
 
@@ -37,10 +39,13 @@ class FeedConsumer(threading.Thread):
                  commit_every_t_ms=1000,
                  parts=None,
                  kill_signal=signal.SIGTERM,
-                 wait_time_before_exit=1):
+                 wait_time_before_exit=1,
+                 use_zk=False,
+                 async_commit=True):
         self.brokerurl = broker
         self.kill_signal = kill_signal
         self.exit_consumer = False
+        self.async_commit = async_commit
         try :
             self.create_kill_signal_handler()
         except Exception as e:
@@ -49,12 +54,22 @@ class FeedConsumer(threading.Thread):
 
         self.wait_time_before_exit = wait_time_before_exit
 
+        if use_zk:
+            api_version = '0.8.1'
+            # ZK autocommit does not seem to work reliably
+            # TODO
+            self.async_commit = False
+
+        else:
+            api_version = 'auto'
+
         try:
             self.cons = KafkaConsumer(bootstrap_servers=broker,
                                       auto_offset_reset=offset,
                                       enable_auto_commit=True,
                                       auto_commit_interval_ms=commit_every_t_ms,
-                                      group_id=group
+                                      group_id=group,
+                                      api_version=api_version
                                       )
         except KafkaTimeoutError as e:
             log.error("[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s /n", str(e), broker)
@@ -126,9 +141,12 @@ class FeedConsumer(threading.Thread):
                     # https://github.com/dpkp/kafka-python/blob/master/kafka/consumer/fetcher.py
                     # TODO verfiy
 
+                    # "extra" safely
+                    if not self.async_commit:
+                        self.cons.commit()
+                    else:
+                        self.cons.commit_async()
 
-                    # uncomment for consumer to work "extra" safely
-                    #self.cons.commit()
                     self.check_for_exit_criteria()
                 self.check_for_exit_criteria()
             except Exception as e :
