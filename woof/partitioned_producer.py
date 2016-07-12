@@ -1,103 +1,148 @@
-from itertools import cycle
 import logging
-from kafka.client import KafkaClient
-from kafka.producer import Producer
-from kafka.common import LeaderNotAvailableError,KafkaUnavailableError
-from kafka.util import kafka_bytestring
 import random
+
+from kafka import KafkaProducer
+from kafka.errors import KafkaTimeoutError
+from kafka.partitioner.default import DefaultPartitioner
+
+from .transactions import make_kafka_safe
 
 log = logging.getLogger("kafka")
 
 BATCH_SEND_DEFAULT_INTERVAL = 20
-BATCH_SEND_MSG_COUNT = 20
+BATCH_SEND_MSG_COUNT = 32
 
 
+class PartitionedProducer():
+    """
+    use send() to send to any topic and distribute based on key
+    """
+
+    def __init__(self, broker,
+                 partitioner=None,  # Note if the earlier hash is needed, need to explicitly pass dumb_hash
+                 async=False,
+                 req_acks=None,  # unused  - here for legacy support
+                 ack_timeout=None,  # unused  - here for legacy support
+                 codec=None,
+                 batch_send=False,
+                 batch_send_every_n=BATCH_SEND_MSG_COUNT,
+                 batch_send_every_t=BATCH_SEND_DEFAULT_INTERVAL,  # unused  - here for legacy support
+                 retries=3):
+
+        try:
+            self.async = async
+            if partitioner is not None:
+                _partitioner = CustomPartitioner(partitioner)
+            else:
+                _partitioner = DefaultPartitioner()
+
+            self.prod = KafkaProducer(bootstrap_servers=broker,
+                                      key_serializer=make_kafka_safe,
+                                      value_serializer=make_kafka_safe,
+                                      batch_size=batch_send_every_n,
+                                      retries=retries,
+                                      partitioner=_partitioner)
+        except Exception as e1:
+            log.error("[partitionedproducer log] GEN err %s  /n", str(e1))
+            raise
+
+    def send(self, topic, key, *msg):
+        try:
+            for _msg in msg:
+                self.prod.send(topic, key=key, value=_msg)
+
+            # for async flush will happen in background
+            if not self.async:
+                self.prod.flush()
+
+        except KafkaTimeoutError as e:
+            log.error("[feedproducer log] KafkaTimeoutError err %s topic %s  /n", str(e), topic)
+            raise e
+        except Exception as e1:
+            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1), topic)
+            raise e1
+
+
+# Note if the earlier hash is needed, need to explicitly pass dumb_hash
 def dumb_hash(key):
+
     sum = 0
     str_key = str(key)
     for s in str_key:
         sum += ord(s)
 
+    log.debug("[feedproducer log] dumb_hash , key = %s", sum)
     return sum
 
 
-class PartitionedProducer(Producer):
+class CustomPartitioner(object):
+    _hash_map = {}
+
+    def __init__(self, hasher):
+        CustomPartitioner._hash_map[1] = hasher
+
+    @classmethod
+    def __call__(cls, key, all_partitions, available):
+
+        if key is None:
+            if available:
+                return random.choice(available)
+            return random.choice(all_partitions)
+
+        idx = cls._hash_map[1](key)
+        idx &= 0x7fffffff
+        idx %= len(all_partitions)
+        return all_partitions[idx]
+
+
+class CyclicPartitionedProducer(KafkaProducer):
     """
-    Feed Producer class
-    use send() to send to any topic
+    use send() to send to any topic and distribute keys cyclically in partitions
     """
-    
-    def __init__(self, broker, partitioner=dumb_hash, async=False,
-                 req_acks=Producer.ACK_AFTER_LOCAL_WRITE,
-                 ack_timeout=Producer.DEFAULT_ACK_TIMEOUT,
-                 codec=None,
-                 batch_send=False,
-                 batch_send_every_n=BATCH_SEND_MSG_COUNT,
-                 batch_send_every_t=BATCH_SEND_DEFAULT_INTERVAL):
-        self.partitions = {}
-        self.hash_fn = partitioner
-        try:
-            self.client = KafkaClient(broker)
-            super(PartitionedProducer, self).__init__(self.client,
-                                            async, req_acks,
-                                            ack_timeout, codec, batch_send,
-                                            batch_send_every_n,
-                                            batch_send_every_t)
-        except KafkaUnavailableError:
-            log.critical( "\nCluster Unavailable %s : Check broker string\n", broker)
-            raise
-        except:
-            raise
 
-    def _next_partition(self, topic, key):
-        if topic not in self.partitions:
-            if not self.client.has_metadata_for_topic(topic):
-                self.client.load_metadata_for_topics(topic)
-            self.partitions[topic] = self.client.get_partition_ids_for_topic(topic)
-
-        log.debug( "\nPartitions are %s \n", str(self.partitions[topic] ))
-        """
-        print "---partitions are"
-        print self.partitions[topic]
-        print self.hash_fn(key)
-        print self.hash_fn(key) % len(self.partitions[topic])
-        print "---partitions are"
-        """
-
-        return self.partitions[topic][self.hash_fn(key) % len(self.partitions[topic])]
-    
-    def send(self, topic, key, *msg, **kwargs):
-        try:
-            topic = kafka_bytestring(topic)
-            partition = kwargs.get('partition', None)
-            if not partition:
-                partition = self._next_partition(topic, key)
-            return self._send_messages(topic, partition, *msg, key=key)
-        except LeaderNotAvailableError:
-            self.client.ensure_topic_exists(topic)
-            return self.send(topic, *msg)
-        except:
-            raise
-
-
-class CyclicPartitionedProducer(PartitionedProducer):
-
-    def __init__(self, broker, random_start=True):
+    def __init__(self,
+                 broker,
+                 async=True,
+                 random_start=True):
         self.partition_cycles = {}
         self.random_start = random_start
-        super(CyclicPartitionedProducer, self).__init__(broker)
+        self.async = async
+        super(CyclicPartitionedProducer, self).__init__(bootstrap_servers=broker,
+                                                        key_serializer=make_kafka_safe,
+                                                        value_serializer=make_kafka_safe)
 
-    def _next_partition(self, topic, key):
-        if topic not in self.partition_cycles:
-            if not self.client.has_metadata_for_topic(topic):
-                self.client.load_metadata_for_topics(topic)
+    def _partition(self, topic, partition, key, value, serialized_key, serialized_value):
+        if partition is not None:
+            assert partition >= 0
+            assert partition in self._metadata.partitions_for_topic(topic), 'Unrecognized partition'
+            return partition
 
-            self.partition_cycles[topic] = cycle(self.client.get_partition_ids_for_topic(topic))
+        all_partitions = list(self._metadata.partitions_for_topic(topic))
+        n_partitions = len(all_partitions)
 
-            # Randomize the initial partition that is returned
+        try:
+            offset = (self.partition_cycles[topic] + 1) % n_partitions
+        except:
             if self.random_start:
-                num_partitions = len(self.client.get_partition_ids_for_topic(topic))
-                for _ in xrange(random.randint(0, num_partitions-1)):
-                    next(self.partition_cycles[topic])
+                offset = random.randint(0, n_partitions - 1)
+            else:
+                offset = 0
 
-        return next(self.partition_cycles[topic])
+        self.partition_cycles[topic] = offset
+        return all_partitions[offset]
+
+    def send(self, topic, key, *msg):
+        try:
+            for _msg in msg:
+                super(CyclicPartitionedProducer, self).send(topic, key=key, value=_msg)
+
+            # for async flush will happen in background
+            if not self.async:
+                self.prod.flush()
+
+        except KafkaTimeoutError as e:
+            log.error("[feedproducer log] KafkaTimeoutError err %s topic %s  /n", str(e), topic)
+            raise e
+        except Exception as e1:
+            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1), topic)
+            raise e1

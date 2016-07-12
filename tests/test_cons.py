@@ -27,9 +27,10 @@ def testxx_start(key,value):
 
 
 
+# to continue to use offsets from zk
+#fc =  FeedConsumer(srv, offset= 'latest', group ='TestGroup',use_zk=True)
+fc =  FeedConsumer(srv, offset= 'latest', group ='TestGroup')
 
-#fc = FeedConsumer(srv)
-fc =  FeedConsumer(srv, offset= 'smallest', group ='TestGroup')
 print "listing to topic %s"%(topic)
 fc.add_topic(topic,dummy)
 fc.start()
@@ -37,14 +38,6 @@ time.sleep(15)
 
 
 
-"""
-fc_from_start = FeedConsumer(srv,offset= 'smallest')
-fc_from_start.add_topic("test_start",print_start)
-fc_from_start.start()
-time.sleep(30)
-print "listing to topic text xx"
-fc_from_start.add_topic("testxx",testxx_start)
-"""
 
 
 time.sleep(60)
