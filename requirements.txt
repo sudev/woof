@@ -1,6 +1,6 @@
 gevent==1.1.1
 greenlet==0.4.10
-kafka-python==1.2.2
+kafka-python==1.2.5
 kazoo==2.2.1
 six==1.10.0
 wheel==0.24.0
