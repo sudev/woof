@@ -4,7 +4,7 @@ import random
 from kafka import KafkaProducer
 from kafka.errors import KafkaTimeoutError
 from kafka.partitioner.default import DefaultPartitioner
-
+from common import CURRENT_PROD_BROKER_VERSION
 from .transactions import make_kafka_safe
 
 log = logging.getLogger("kafka")
@@ -41,6 +41,7 @@ class PartitionedProducer():
                                       value_serializer=make_kafka_safe,
                                       batch_size=batch_send_every_n,
                                       retries=retries,
+                                      api_version = CURRENT_PROD_BROKER_VERSION,
                                       partitioner=_partitioner)
         except Exception as e1:
             log.error("[partitionedproducer log] GEN err %s  /n", str(e1))
@@ -107,9 +108,11 @@ class CyclicPartitionedProducer(KafkaProducer):
         self.partition_cycles = {}
         self.random_start = random_start
         self.async = async
+
         super(CyclicPartitionedProducer, self).__init__(bootstrap_servers=broker,
                                                         key_serializer=make_kafka_safe,
-                                                        value_serializer=make_kafka_safe)
+                                                        value_serializer=make_kafka_safe,
+                                                        api_version = CURRENT_PROD_BROKER_VERSION)
 
     def _partition(self, topic, partition, key, value, serialized_key, serialized_value):
         if partition is not None:

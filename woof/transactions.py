@@ -4,6 +4,7 @@ import time
 
 from kafka import KafkaProducer
 from kafka.errors import KafkaTimeoutError
+from common import CURRENT_PROD_BROKER_VERSION
 
 log = logging.getLogger("kafka")
 
@@ -20,6 +21,7 @@ class TransactionLogger(object):
         self.producer = KafkaProducer(bootstrap_servers=broker,
                                       key_serializer=make_kafka_safe,
                                       value_serializer=make_kafka_safe,
+                                      api_version = CURRENT_PROD_BROKER_VERSION,
                                       retries=retries)
 
     def New(self, txn_id, amount, skus, detail="#", userid="#", email="#", phone="#"):
