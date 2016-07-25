@@ -2,7 +2,7 @@ import threading, logging, time, signal
 
 from kafka import KafkaConsumer
 from kafka.errors import KafkaTimeoutError
-from .common import WoofNotSupported
+from .common import WoofNotSupported,CURRENT_PROD_BROKER_VERSION
 
 log = logging.getLogger("kafka")
 
@@ -28,6 +28,7 @@ class FeedConsumer(threading.Thread):
 
     commit_every_t_ms:  How much time (in milliseconds) to before commit to zookeeper
 
+    kwargs : anything else you want to pass to kafka-python
 
     """
     daemon = True
@@ -41,7 +42,9 @@ class FeedConsumer(threading.Thread):
                  kill_signal=signal.SIGTERM,
                  wait_time_before_exit=1,
                  use_zk=False,
-                 async_commit=True):
+                 async_commit=True,
+                 high_latent_link=False,
+                 **kwargs):
         self.brokerurl = broker
         self.kill_signal = kill_signal
         self.exit_consumer = False
@@ -55,22 +58,26 @@ class FeedConsumer(threading.Thread):
         self.wait_time_before_exit = wait_time_before_exit
 
         if use_zk:
-            api_version = '0.8.1'
+            kwargs['api_version'] = '0.8.1'
             # ZK autocommit does not seem to work reliably
             # TODO
             self.async_commit = False
 
         else:
-            api_version = 'auto'
+            kwargs['api_version'] = CURRENT_PROD_BROKER_VERSION
+
+
+
 
         try:
             self.cons = KafkaConsumer(bootstrap_servers=broker,
                                       auto_offset_reset=offset,
-                                      enable_auto_commit=True,
+                                      enable_auto_commit= self.async_commit,
                                       auto_commit_interval_ms=commit_every_t_ms,
                                       group_id=group,
-                                      api_version=api_version
-                                      )
+                                      session_timeout_ms=6000,
+                                      **kwargs)
+
         except KafkaTimeoutError as e:
             log.error("[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s /n", str(e), broker)
             raise e
@@ -80,6 +87,7 @@ class FeedConsumer(threading.Thread):
 
         self.callbacks = {}
         super(FeedConsumer, self).__init__()
+
 
     def add_topic(self, topic, todo, parts=None):
         """
@@ -144,8 +152,7 @@ class FeedConsumer(threading.Thread):
                     # "extra" safely
                     if not self.async_commit:
                         self.cons.commit()
-                    else:
-                        self.cons.commit_async()
+
 
                     self.check_for_exit_criteria()
                 self.check_for_exit_criteria()
