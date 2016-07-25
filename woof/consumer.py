@@ -2,11 +2,9 @@ import threading, logging, time, signal
 
 from kafka import KafkaConsumer
 from kafka.errors import KafkaTimeoutError
-from .common import WoofNotSupported,CURRENT_PROD_BROKER_VERSION
+from .common import WoofNotSupported, CURRENT_PROD_BROKER_VERSION
 
 log = logging.getLogger("kafka")
-
-
 
 
 class FeedConsumer(threading.Thread):
@@ -49,10 +47,12 @@ class FeedConsumer(threading.Thread):
         self.kill_signal = kill_signal
         self.exit_consumer = False
         self.async_commit = async_commit
-        try :
+        try:
             self.create_kill_signal_handler()
         except Exception as e:
-            log.error("[feedconsumer log] exception %s. Skipping signal handler install. ", str(e))
+            log.error(
+                "[feedconsumer log] exception %s. Skipping signal handler install. ",
+                str(e))
             pass
 
         self.wait_time_before_exit = wait_time_before_exit
@@ -66,20 +66,20 @@ class FeedConsumer(threading.Thread):
         else:
             kwargs['api_version'] = CURRENT_PROD_BROKER_VERSION
 
-
-
-
         try:
-            self.cons = KafkaConsumer(bootstrap_servers=broker,
-                                      auto_offset_reset=offset,
-                                      enable_auto_commit= self.async_commit,
-                                      auto_commit_interval_ms=commit_every_t_ms,
-                                      group_id=group,
-                                      session_timeout_ms=6000,
-                                      **kwargs)
+            self.cons = KafkaConsumer(
+                bootstrap_servers=broker,
+                auto_offset_reset=offset,
+                enable_auto_commit=self.async_commit,
+                auto_commit_interval_ms=commit_every_t_ms,
+                group_id=group,
+                session_timeout_ms=6000,
+                **kwargs)
 
         except KafkaTimeoutError as e:
-            log.error("[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s /n", str(e), broker)
+            log.error(
+                "[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s /n",
+                str(e), broker)
             raise e
         except Exception as e1:
             log.error("[feedconsumer log] INIT err %s \n", str(e1))
@@ -87,7 +87,6 @@ class FeedConsumer(threading.Thread):
 
         self.callbacks = {}
         super(FeedConsumer, self).__init__()
-
 
     def add_topic(self, topic, todo, parts=None):
         """
@@ -103,34 +102,37 @@ class FeedConsumer(threading.Thread):
         parts (list) : tuple of the partitions to listen to
 
         """
-        try :
+        try:
             self.callbacks[topic] = todo
 
             if parts is None:
                 log.info("[feedconsumer log] : adding topic %s ", topic)
             else:
-                raise WoofNotSupported("manual partition assignement not supported")
+                raise WoofNotSupported(
+                    "manual partition assignement not supported")
 
             self.cons.subscribe(topics=self.callbacks.keys())
-        except Exception as e :
+        except Exception as e:
             log.error("[feedconsumer log] add_topic err %s /n", str(e))
-            raise  e
+            raise e
 
-    def remove_topic(self, topic,  parts=None):
+    def remove_topic(self, topic, parts=None):
         if parts is not None:
-            raise WoofNotSupported("manual partition assignement not supported")
+            raise WoofNotSupported(
+                "manual partition assignement not supported")
 
         try:
             self.cons.unsubscribe()
             del self.callbacks[topic]
             self.cons.subscribe(topics=self.callbacks.keys())
-        except Exception as e :
+        except Exception as e:
             log.error("[feedconsumer log] remove_topic err %s /n", str(e))
-            raise  e
+            raise e
 
     def create_kill_signal_handler(self):
         def set_stop_signal(signal, frame):
             self.exit_consumer = True
+
         signal.signal(self.kill_signal, set_stop_signal)
 
     def check_for_exit_criteria(self):
@@ -153,10 +155,10 @@ class FeedConsumer(threading.Thread):
                     if not self.async_commit:
                         self.cons.commit()
 
-
                     self.check_for_exit_criteria()
                 self.check_for_exit_criteria()
-            except Exception as e :
-                log.error("[feedconsumer log] thread run  err %s ..continuing../n", str(e))
+            except Exception as e:
+                log.error(
+                    "[feedconsumer log] thread run  err %s ..continuing../n",
+                    str(e))
                 time.sleep(1)
-
