@@ -25,7 +25,7 @@ def new_start(key,value):
 
 print " Adding topic " + topic
 
-fc = FeedConsumer("localhost:9092")
+fc = FeedConsumer("localhost:9092", group='testg')
 fc.add_topic(topic,dummy)
 fc.start()
 fc.add_topic("test1",new_start)

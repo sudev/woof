@@ -4,7 +4,7 @@ import random
 from kafka import KafkaProducer
 from kafka.errors import KafkaTimeoutError
 from kafka.partitioner.default import DefaultPartitioner
-
+from common import CURRENT_PROD_BROKER_VERSION
 from .transactions import make_kafka_safe
 
 log = logging.getLogger("kafka")
@@ -41,6 +41,7 @@ class PartitionedProducer():
                                       value_serializer=make_kafka_safe,
                                       batch_size=batch_send_every_n,
                                       retries=retries,
+                                      api_version=CURRENT_PROD_BROKER_VERSION,
                                       partitioner=_partitioner)
         except Exception as e1:
             log.error("[partitionedproducer log] GEN err %s  /n", str(e1))
@@ -56,10 +57,13 @@ class PartitionedProducer():
                 self.prod.flush()
 
         except KafkaTimeoutError as e:
-            log.error("[feedproducer log] KafkaTimeoutError err %s topic %s  /n", str(e), topic)
+            log.error(
+                "[feedproducer log] KafkaTimeoutError err %s topic %s  /n",
+                str(e), topic)
             raise e
         except Exception as e1:
-            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1), topic)
+            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1),
+                      topic)
             raise e1
 
 
@@ -100,21 +104,23 @@ class CyclicPartitionedProducer(KafkaProducer):
     use send() to send to any topic and distribute keys cyclically in partitions
     """
 
-    def __init__(self,
-                 broker,
-                 async=True,
-                 random_start=True):
+    def __init__(self, broker, async=True, random_start=True):
         self.partition_cycles = {}
         self.random_start = random_start
         self.async = async
-        super(CyclicPartitionedProducer, self).__init__(bootstrap_servers=broker,
-                                                        key_serializer=make_kafka_safe,
-                                                        value_serializer=make_kafka_safe)
 
-    def _partition(self, topic, partition, key, value, serialized_key, serialized_value):
+        super(CyclicPartitionedProducer, self).__init__(
+            bootstrap_servers=broker,
+            key_serializer=make_kafka_safe,
+            value_serializer=make_kafka_safe,
+            api_version=CURRENT_PROD_BROKER_VERSION)
+
+    def _partition(self, topic, partition, key, value, serialized_key,
+                   serialized_value):
         if partition is not None:
             assert partition >= 0
-            assert partition in self._metadata.partitions_for_topic(topic), 'Unrecognized partition'
+            assert partition in self._metadata.partitions_for_topic(
+                topic), 'Unrecognized partition'
             return partition
 
         all_partitions = list(self._metadata.partitions_for_topic(topic))
@@ -134,15 +140,20 @@ class CyclicPartitionedProducer(KafkaProducer):
     def send(self, topic, key, *msg):
         try:
             for _msg in msg:
-                super(CyclicPartitionedProducer, self).send(topic, key=key, value=_msg)
+                super(CyclicPartitionedProducer, self).send(topic,
+                                                            key=key,
+                                                            value=_msg)
 
             # for async flush will happen in background
             if not self.async:
                 self.prod.flush()
 
         except KafkaTimeoutError as e:
-            log.error("[feedproducer log] KafkaTimeoutError err %s topic %s  /n", str(e), topic)
+            log.error(
+                "[feedproducer log] KafkaTimeoutError err %s topic %s  /n",
+                str(e), topic)
             raise e
         except Exception as e1:
-            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1), topic)
+            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1),
+                      topic)
             raise e1

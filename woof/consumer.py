@@ -2,11 +2,9 @@ import threading, logging, time, signal
 
 from kafka import KafkaConsumer
 from kafka.errors import KafkaTimeoutError
-from .common import WoofNotSupported
+from .common import WoofNotSupported, CURRENT_PROD_BROKER_VERSION
 
 log = logging.getLogger("kafka")
-
-
 
 
 class FeedConsumer(threading.Thread):
@@ -28,6 +26,7 @@ class FeedConsumer(threading.Thread):
 
     commit_every_t_ms:  How much time (in milliseconds) to before commit to zookeeper
 
+    kwargs : anything else you want to pass to kafka-python
 
     """
     daemon = True
@@ -41,38 +40,46 @@ class FeedConsumer(threading.Thread):
                  kill_signal=signal.SIGTERM,
                  wait_time_before_exit=1,
                  use_zk=False,
-                 async_commit=True):
+                 async_commit=True,
+                 high_latent_link=False,
+                 **kwargs):
         self.brokerurl = broker
         self.kill_signal = kill_signal
         self.exit_consumer = False
         self.async_commit = async_commit
-        try :
+        try:
             self.create_kill_signal_handler()
         except Exception as e:
-            log.error("[feedconsumer log] exception %s. Skipping signal handler install. ", str(e))
+            log.error(
+                "[feedconsumer log] exception %s. Skipping signal handler install. ",
+                str(e))
             pass
 
         self.wait_time_before_exit = wait_time_before_exit
 
         if use_zk:
-            api_version = '0.8.1'
+            kwargs['api_version'] = '0.8.1'
             # ZK autocommit does not seem to work reliably
             # TODO
             self.async_commit = False
 
         else:
-            api_version = 'auto'
+            kwargs['api_version'] = CURRENT_PROD_BROKER_VERSION
 
         try:
-            self.cons = KafkaConsumer(bootstrap_servers=broker,
-                                      auto_offset_reset=offset,
-                                      enable_auto_commit=True,
-                                      auto_commit_interval_ms=commit_every_t_ms,
-                                      group_id=group,
-                                      api_version=api_version
-                                      )
+            self.cons = KafkaConsumer(
+                bootstrap_servers=broker,
+                auto_offset_reset=offset,
+                enable_auto_commit=self.async_commit,
+                auto_commit_interval_ms=commit_every_t_ms,
+                group_id=group,
+                session_timeout_ms=6000,
+                **kwargs)
+
         except KafkaTimeoutError as e:
-            log.error("[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s /n", str(e), broker)
+            log.error(
+                "[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s /n",
+                str(e), broker)
             raise e
         except Exception as e1:
             log.error("[feedconsumer log] INIT err %s \n", str(e1))
@@ -95,34 +102,37 @@ class FeedConsumer(threading.Thread):
         parts (list) : tuple of the partitions to listen to
 
         """
-        try :
+        try:
             self.callbacks[topic] = todo
 
             if parts is None:
                 log.info("[feedconsumer log] : adding topic %s ", topic)
             else:
-                raise WoofNotSupported("manual partition assignement not supported")
+                raise WoofNotSupported(
+                    "manual partition assignement not supported")
 
             self.cons.subscribe(topics=self.callbacks.keys())
-        except Exception as e :
+        except Exception as e:
             log.error("[feedconsumer log] add_topic err %s /n", str(e))
-            raise  e
+            raise e
 
-    def remove_topic(self, topic,  parts=None):
+    def remove_topic(self, topic, parts=None):
         if parts is not None:
-            raise WoofNotSupported("manual partition assignement not supported")
+            raise WoofNotSupported(
+                "manual partition assignement not supported")
 
         try:
             self.cons.unsubscribe()
             del self.callbacks[topic]
             self.cons.subscribe(topics=self.callbacks.keys())
-        except Exception as e :
+        except Exception as e:
             log.error("[feedconsumer log] remove_topic err %s /n", str(e))
-            raise  e
+            raise e
 
     def create_kill_signal_handler(self):
         def set_stop_signal(signal, frame):
             self.exit_consumer = True
+
         signal.signal(self.kill_signal, set_stop_signal)
 
     def check_for_exit_criteria(self):
@@ -144,12 +154,11 @@ class FeedConsumer(threading.Thread):
                     # "extra" safely
                     if not self.async_commit:
                         self.cons.commit()
-                    else:
-                        self.cons.commit_async()
 
                     self.check_for_exit_criteria()
                 self.check_for_exit_criteria()
-            except Exception as e :
-                log.error("[feedconsumer log] thread run  err %s ..continuing../n", str(e))
+            except Exception as e:
+                log.error(
+                    "[feedconsumer log] thread run  err %s ..continuing../n",
+                    str(e))
                 time.sleep(1)
-

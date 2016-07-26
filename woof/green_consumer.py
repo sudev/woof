@@ -1,4 +1,4 @@
-from gevent import monkey;
+from gevent import monkey
 
 monkey.patch_all()
 import logging, gevent, time
@@ -50,8 +50,9 @@ class GreenFeedConsumer(FeedConsumer):
         # unsupported till them
         raise WoofNotSupported("GreenFeedConsumer  not supported")
 
-        super(GreenFeedConsumer, self).__init__(broker, group, offset, commit_every_t_ms, parts, kill_signal,
-                                                wait_time_before_exit)
+        super(GreenFeedConsumer, self).__init__(
+            broker, group, offset, commit_every_t_ms, parts, kill_signal,
+            wait_time_before_exit)
 
     def wrap(self, callback, mesg):
         # earlier wrap was used to mark task done, but not needed here i guess
@@ -61,7 +62,6 @@ class GreenFeedConsumer(FeedConsumer):
         # TODO this may make greenlet based callbacks dangerous..as we have commited without callback returning
         callback(mesg.key, mesg.value)
 
-
     def run(self):
         while True:
             try:
@@ -69,8 +69,10 @@ class GreenFeedConsumer(FeedConsumer):
                     gevent.spawn(self.wrap, self.callbacks[m.topic], m)
                     self.check_for_exit_criteria()
                 self.check_for_exit_criteria()
-            except Exception as e :
+            except Exception as e:
                 print 'EXCEPTION', e
                 traceback.print_exc(file=sys.stdout)
-                log.error("[greenconsumer log] thread run  err %s ..continuing../n", str(e))
+                log.error(
+                    "[greenconsumer log] thread run  err %s ..continuing../n",
+                    str(e))
                 time.sleep(1)
