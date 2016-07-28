@@ -15,19 +15,22 @@ class TransactionLogger(object):
                  vertical,
                  host=socket.gethostname(),
                  async=False,
-                 retries=1):
+                 retries=1,
+                 **kwargs):
         self.broker = broker
         self.this_host = host
         self.vertical = vertical
         self.async = async
         self.topic = _get_topic_from_vertical(vertical)
+        kwargs['api_version'] = kwargs.get('api_version',
+                                           CURRENT_PROD_BROKER_VERSION)
         # thread safe producer, uses default murmur2 partiioner by default
         # good for us
         self.producer = KafkaProducer(bootstrap_servers=broker,
                                       key_serializer=make_kafka_safe,
                                       value_serializer=make_kafka_safe,
-                                      api_version=CURRENT_PROD_BROKER_VERSION,
-                                      retries=retries)
+                                      retries=retries,
+                                      **kwargs)
 
     def New(self,
             txn_id,

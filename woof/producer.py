@@ -13,13 +13,15 @@ class FeedProducer():
     use send() to send to any topic
     """
 
-    def __init__(self, broker, retries=3, async=False):
+    def __init__(self, broker, retries=3, async=False, **kwargs):
         try:
+            kwargs['api_version'] = kwargs.get('api_version',
+                                               CURRENT_PROD_BROKER_VERSION)
             self.prod = KafkaProducer(bootstrap_servers=broker,
                                       key_serializer=make_kafka_safe,
                                       value_serializer=make_kafka_safe,
                                       retries=retries,
-                                      api_version=CURRENT_PROD_BROKER_VERSION)
+                                      **kwargs)
             self.async = async
         except Exception as e:
             log.error("[feedproducer log] Constructor error ERROR %s  /n",

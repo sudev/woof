@@ -58,13 +58,14 @@ class FeedConsumer(threading.Thread):
         self.wait_time_before_exit = wait_time_before_exit
 
         if use_zk:
-            kwargs['api_version'] = '0.8.1'
+            kwargs['api_version'] = kwargs.get('api_version', '0.8.1')
             # ZK autocommit does not seem to work reliably
             # TODO
             self.async_commit = False
 
         else:
-            kwargs['api_version'] = CURRENT_PROD_BROKER_VERSION
+            kwargs['api_version'] = kwargs.get('api_version',
+                                               CURRENT_PROD_BROKER_VERSION)
 
         try:
             self.cons = KafkaConsumer(

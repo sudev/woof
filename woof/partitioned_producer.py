@@ -27,7 +27,8 @@ class PartitionedProducer():
                  batch_send=False,
                  batch_send_every_n=BATCH_SEND_MSG_COUNT,
                  batch_send_every_t=BATCH_SEND_DEFAULT_INTERVAL,  # unused  - here for legacy support
-                 retries=3):
+                 retries=3,
+                 **kwargs):
 
         try:
             self.async = async
@@ -35,14 +36,15 @@ class PartitionedProducer():
                 _partitioner = CustomPartitioner(partitioner)
             else:
                 _partitioner = DefaultPartitioner()
-
+            kwargs['api_version'] = kwargs.get('api_version',
+                                               CURRENT_PROD_BROKER_VERSION)
             self.prod = KafkaProducer(bootstrap_servers=broker,
                                       key_serializer=make_kafka_safe,
                                       value_serializer=make_kafka_safe,
                                       batch_size=batch_send_every_n,
                                       retries=retries,
-                                      api_version=CURRENT_PROD_BROKER_VERSION,
-                                      partitioner=_partitioner)
+                                      partitioner=_partitioner,
+                                      **kwargs)
         except Exception as e1:
             log.error("[partitionedproducer log] GEN err %s  /n", str(e1))
             raise
@@ -104,16 +106,17 @@ class CyclicPartitionedProducer(KafkaProducer):
     use send() to send to any topic and distribute keys cyclically in partitions
     """
 
-    def __init__(self, broker, async=True, random_start=True):
+    def __init__(self, broker, async=True, random_start=True, **kwargs):
         self.partition_cycles = {}
         self.random_start = random_start
         self.async = async
-
+        kwargs['api_version'] = kwargs.get('api_version',
+                                           CURRENT_PROD_BROKER_VERSION)
         super(CyclicPartitionedProducer, self).__init__(
             bootstrap_servers=broker,
             key_serializer=make_kafka_safe,
             value_serializer=make_kafka_safe,
-            api_version=CURRENT_PROD_BROKER_VERSION)
+            **kwargs)
 
     def _partition(self, topic, partition, key, value, serialized_key,
                    serialized_value):
