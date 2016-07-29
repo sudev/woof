@@ -74,12 +74,12 @@ class FeedConsumer(threading.Thread):
                 enable_auto_commit=self.async_commit,
                 auto_commit_interval_ms=commit_every_t_ms,
                 group_id=group,
-                session_timeout_ms=6000,
+                session_timeout_ms=60000,
                 **kwargs)
 
         except KafkaTimeoutError as e:
             log.error(
-                "[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s /n",
+                "[feedconsumer log] INIT KafkaTimeoutError  %s. Please check broker string %s \n",
                 str(e), broker)
             raise e
         except Exception as e1:
@@ -114,7 +114,7 @@ class FeedConsumer(threading.Thread):
 
             self.cons.subscribe(topics=self.callbacks.keys())
         except Exception as e:
-            log.error("[feedconsumer log] add_topic err %s /n", str(e))
+            log.error("[feedconsumer log] add_topic err %s \n", str(e))
             raise e
 
     def remove_topic(self, topic, parts=None):
@@ -127,7 +127,7 @@ class FeedConsumer(threading.Thread):
             del self.callbacks[topic]
             self.cons.subscribe(topics=self.callbacks.keys())
         except Exception as e:
-            log.error("[feedconsumer log] remove_topic err %s /n", str(e))
+            log.error("[feedconsumer log] remove_topic err %s \n", str(e))
             raise e
 
     def create_kill_signal_handler(self):
@@ -160,6 +160,6 @@ class FeedConsumer(threading.Thread):
                 self.check_for_exit_criteria()
             except Exception as e:
                 log.error(
-                    "[feedconsumer log] thread run  err %s ..continuing../n",
+                    "[feedconsumer log] thread run  err %s ..continuing..\n",
                     str(e))
                 time.sleep(1)

@@ -46,7 +46,7 @@ class PartitionedProducer():
                                       partitioner=_partitioner,
                                       **kwargs)
         except Exception as e1:
-            log.error("[partitionedproducer log] GEN err %s  /n", str(e1))
+            log.error("[partitionedproducer log] GEN err %s  \n", str(e1))
             raise
 
     def send(self, topic, key, *msg):
@@ -60,11 +60,11 @@ class PartitionedProducer():
 
         except KafkaTimeoutError as e:
             log.error(
-                "[feedproducer log] KafkaTimeoutError err %s topic %s  /n",
+                "[feedproducer log] KafkaTimeoutError err %s topic %s  \n",
                 str(e), topic)
             raise e
         except Exception as e1:
-            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1),
+            log.error("[feedproducer log] GEN  err %s topic %s \n", str(e1),
                       topic)
             raise e1
 
@@ -153,10 +153,10 @@ class CyclicPartitionedProducer(KafkaProducer):
 
         except KafkaTimeoutError as e:
             log.error(
-                "[feedproducer log] KafkaTimeoutError err %s topic %s  /n",
+                "[feedproducer log] KafkaTimeoutError err %s topic %s  \n",
                 str(e), topic)
             raise e
         except Exception as e1:
-            log.error("[feedproducer log] GEN  err %s topic %s /n", str(e1),
+            log.error("[feedproducer log] GEN  err %s topic %s \n", str(e1),
                       topic)
             raise e1
