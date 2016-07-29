@@ -41,7 +41,7 @@ class FeedConsumer(threading.Thread):
                  wait_time_before_exit=1,
                  use_zk=False,
                  async_commit=True,
-                 high_latent_link=False,
+                 handler_timeout_ms=60000,
                  **kwargs):
         self.brokerurl = broker
         self.kill_signal = kill_signal
@@ -67,6 +67,9 @@ class FeedConsumer(threading.Thread):
             kwargs['api_version'] = kwargs.get('api_version',
                                                CURRENT_PROD_BROKER_VERSION)
 
+        # curb over-optimism
+        handler_timeout_ms = min (handler_timeout_ms, 60000)
+
         try:
             self.cons = KafkaConsumer(
                 bootstrap_servers=broker,
@@ -74,7 +77,7 @@ class FeedConsumer(threading.Thread):
                 enable_auto_commit=self.async_commit,
                 auto_commit_interval_ms=commit_every_t_ms,
                 group_id=group,
-                session_timeout_ms=60000,
+                session_timeout_ms=handler_timeout_ms,
                 **kwargs)
 
         except KafkaTimeoutError as e:
