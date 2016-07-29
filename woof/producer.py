@@ -2,12 +2,13 @@ import logging, time
 
 from kafka import KafkaProducer
 from kafka.errors import KafkaTimeoutError
-from .transactions import make_kafka_safe
 from common import CURRENT_PROD_BROKER_VERSION
+from .transactions import make_kafka_safe
+
 log = logging.getLogger("kafka")
 
 
-class FeedProducer():
+class FeedProducer(object):
     """
     Feed Producer class
     use send() to send to any topic
@@ -52,7 +53,7 @@ class FeedProducer():
             self.prod.flush()
         except KafkaTimeoutError as e:
             log.error(
-                "[feedproducer log] KafkaTimeoutError err %s topic \n",str(e))
+                "[feedproducer log] KafkaTimeoutError err %s topic \n", str(e))
             raise e
         except Exception as e1:
             log.error("[feedproducer log] GEN  err %s topic %s \n", str(e1))

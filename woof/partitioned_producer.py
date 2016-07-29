@@ -13,7 +13,7 @@ BATCH_SEND_DEFAULT_INTERVAL = 20
 BATCH_SEND_MSG_COUNT = 32
 
 
-class PartitionedProducer():
+class PartitionedProducer(object):
     """
     use send() to send to any topic and distribute based on key
     """

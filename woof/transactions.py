@@ -137,10 +137,10 @@ def _get_topic_from_vertical(vertical):
     return "_".join(["TRANSACTIONS", vertical])
 
 
-def make_kafka_safe(input):
-    if type(input) != unicode:
-        input = str(input)
-        input = input.decode('utf-8')
-        return input.encode('ascii', 'ignore')
+def make_kafka_safe(raw_data):
+    if type(raw_data) != unicode:
+        raw_data = str(raw_data)
+        raw_data = raw_data.decode('utf-8')
+        return raw_data.encode('ascii', 'ignore')
     else:
-        return input.encode('ascii', 'ignore')
+        return raw_data.encode('ascii', 'ignore')
