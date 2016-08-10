@@ -41,7 +41,7 @@ class FeedConsumer(threading.Thread):
                  wait_time_before_exit=1,
                  use_zk=False,
                  async_commit=True,
-                 handler_timeout_ms=30000,
+                 handler_timeout_ms=60000,
                  **kwargs):
         self.brokerurl = broker
         self.kill_signal = kill_signal
@@ -68,7 +68,7 @@ class FeedConsumer(threading.Thread):
                                                CURRENT_PROD_BROKER_VERSION)
 
         # curb over-optimism
-        handler_timeout_ms = min(handler_timeout_ms, 30000)
+        handler_timeout_ms = min(handler_timeout_ms, 60000)
 
         try:
             self.cons = KafkaConsumer(
