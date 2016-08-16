@@ -4,7 +4,7 @@ from kafka import KafkaConsumer
 from kafka.errors import KafkaTimeoutError
 from .common import WoofNotSupported, CURRENT_PROD_BROKER_VERSION
 
-log = logging.getLogger("kafka")
+log = logging.getLogger("woof")
 
 
 class FeedConsumer(threading.Thread):

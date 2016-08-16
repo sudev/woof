@@ -8,7 +8,7 @@ import sys, traceback
 from .consumer import FeedConsumer
 from .common import WoofNotSupported
 
-log = logging.getLogger("kafka")
+log = logging.getLogger("woof")
 
 
 class GreenFeedConsumer(FeedConsumer):

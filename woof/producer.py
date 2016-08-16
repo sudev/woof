@@ -5,7 +5,7 @@ from kafka.errors import KafkaTimeoutError
 from common import CURRENT_PROD_BROKER_VERSION
 from .transactions import make_kafka_safe
 
-log = logging.getLogger("kafka")
+log = logging.getLogger("woof")
 
 
 class FeedProducer(object):
@@ -33,19 +33,19 @@ class FeedProducer(object):
         try:
             for msg in msgs:
                 self.prod.send(topic, msg)
-            log.debug("[feedproducer log] about to flush.. topic %s msg %s \n",
+            log.info("[feedproducer log] about to flush.. topic %s message %s \n",
                       topic, str(msgs))
 
             if not self.async:
                 self.prod.flush()
         except KafkaTimeoutError as e:
             log.error(
-                "[feedproducer log] KafkaTimeoutError err %s topic %s  \n",
-                str(e), topic)
+                "[feedproducer log] KafkaTimeoutError err %s topic %s message %s \n",
+                str(e), topic, str(msgs))
             raise e
         except Exception as e1:
-            log.error("[feedproducer log] GEN  err %s topic %s \n", str(e1),
-                      topic)
+            log.error("[feedproducer log] GEN  err %s topic %s message %s \n", str(e1),
+                      topic, str(msgs))
             raise e1
 
     def flush(self):

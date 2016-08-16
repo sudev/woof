@@ -7,7 +7,7 @@ from kafka.partitioner.default import DefaultPartitioner
 from common import CURRENT_PROD_BROKER_VERSION
 from .transactions import make_kafka_safe
 
-log = logging.getLogger("kafka")
+log = logging.getLogger("woof")
 
 BATCH_SEND_DEFAULT_INTERVAL = 20
 BATCH_SEND_MSG_COUNT = 32
