@@ -37,7 +37,7 @@ class FeedProducer(object):
                       topic, str(msgs))
 
             if not self.async:
-                self.flush()
+                self.prod.flush()
         except KafkaTimeoutError as e:
             log.error(
                 "[feedproducer log] KafkaTimeoutError err %s topic %s message %s \n",
