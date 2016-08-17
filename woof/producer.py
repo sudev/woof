@@ -47,14 +47,3 @@ class FeedProducer(object):
             log.error("[feedproducer log] GEN  err %s topic %s message %s \n",
                       str(e1), topic, str(msgs))
             raise e1
-
-    def flush(self):
-        try:
-            self.prod.flush()
-        except KafkaTimeoutError as e:
-            log.error("[feedproducer log] KafkaTimeoutError err %s topic \n",
-                      str(e))
-            raise e
-        except Exception as e1:
-            log.error("[feedproducer log] GEN  err %s topic %s \n", str(e1))
-            raise e1
