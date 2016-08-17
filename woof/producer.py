@@ -32,29 +32,18 @@ class FeedProducer(object):
     def send(self, topic, *msgs):
         try:
             for msg in msgs:
-                self.prod.send(topic, msg)
-            log.info("[feedproducer log] about to flush.. topic %s message %s \n",
-                      topic, str(msgs))
+                future = self.prod.send(topic, msg)
+                log.info(
+                    "[feedproducer log] about to flush.. recordmeta %s message %s \n",
+                    str(future.get(timeout=1)),
+                    msg)
 
-            if not self.async:
-                self.prod.flush()
         except KafkaTimeoutError as e:
             log.error(
                 "[feedproducer log] KafkaTimeoutError err %s topic %s message %s \n",
                 str(e), topic, str(msgs))
             raise e
         except Exception as e1:
-            log.error("[feedproducer log] GEN  err %s topic %s message %s \n", str(e1),
-                      topic, str(msgs))
-            raise e1
-
-    def flush(self):
-        try:
-            self.prod.flush()
-        except KafkaTimeoutError as e:
-            log.error(
-                "[feedproducer log] KafkaTimeoutError err %s topic \n", str(e))
-            raise e
-        except Exception as e1:
-            log.error("[feedproducer log] GEN  err %s topic %s \n", str(e1))
+            log.error("[feedproducer log] GEN  err %s topic %s message %s \n",
+                      str(e1), topic, str(msgs))
             raise e1
