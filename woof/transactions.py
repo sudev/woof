@@ -92,8 +92,8 @@ class TransactionLogger(object):
         log.info("[transactions log] topic %s txnid %s msg %s /n", self.topic,
                  txn_id, msg)
         try:
-            self.producer.send(self.topic, key=txn_id, value=msg)
-            self.producer.flush()
+            future = self.producer.send(self.topic, key=txn_id, value=msg)
+            future.get(timeout=1)
         except KafkaTimeoutError as e:
             log.error(
                 "[transactions log] KafkaTimeoutError ERROR %s topic %s txnid %s msg %s /n",
