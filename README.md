@@ -6,6 +6,16 @@ Persistent messaging library which offers various flavors of messaging; optimizi
 
 Currently there is support for paritioned , persistent queues which use Apache Kafka as the backend. Future work will include low-latency messaging.
 
+## Installation 
+
+* Install requirements for woof.
+```
+pip install -r requirements.txt
+```
+* Install woof package
+```
+python setup.py install
+```
 
 ## Sample Usage
 
