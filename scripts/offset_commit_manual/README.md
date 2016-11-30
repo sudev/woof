@@ -29,5 +29,4 @@ The Json describing the group, topic, partition should follow the following synt
                 }
         }
 }
-"""
 ```
