@@ -1,7 +1,7 @@
 Usuage: 
 
 ```
-python commit_offset.py sample_json.json
+python commit_offset.py kafkabrokerip:port sample_json.json
 ```
 
 The Json describing the group, topic, partition should follow the following syntax. 
