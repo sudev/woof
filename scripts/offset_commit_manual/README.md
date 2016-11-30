@@ -7,6 +7,7 @@ python commit_offset.py sample_json.json
 The Json describing the group, topic, partition should follow the following syntax. 
 
 ### Syntax
+
 ```json 
 {
         "group-name": {
@@ -15,8 +16,10 @@ The Json describing the group, topic, partition should follow the following synt
         }
 }
 }
+```
 
 ### Example
+
 ```json 
 {
         "mygroup": {
