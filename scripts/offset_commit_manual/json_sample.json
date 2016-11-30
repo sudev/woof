@@ -1,0 +1,8 @@
+{
+        "sudev_test": {
+                "TRANSACTIONS_BUS": {
+                        "7": 40000,
+                        "0": 40000
+                }
+        }
+}
