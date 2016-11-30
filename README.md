@@ -6,6 +6,16 @@ Persistent messaging library which offers various flavors of messaging; optimizi
 
 Currently there is support for paritioned , persistent queues which use Apache Kafka as the backend. Future work will include low-latency messaging.
 
+## Installation 
+
+* Install requirements for woof.
+```
+pip install -r requirements.txt
+```
+* Install woof package
+```
+python setup.py install
+```
 
 ## Sample Usage
 
@@ -25,13 +35,17 @@ fp.send(topic, " [MY MESSAGE] %s" %(msg))
 
 ```python
 import time, sys, logging, os
-from woof.green_consumer import GreenFeedConsumer
+from woof.consumer import FeedConsumer
 
-fc = GreenFeedConsumer(srv,  group ='TestGroup')
-print srv
-print "listing to topic %s"%(topic)
+# Callback function executed for eah message.
+# Arg1 - msg.key
+# Arg2 - msg.value
+def dummy(key, value):
+    print(key + ":" + value)
+
+fc = FeedConsumer(broker='kafka_broker_ip:kafka_broker_port',  group ='TestGroup')
 fc.add_topic(topic, dummy)
-fc.start()
+fc.run()
 
 time.sleep(60) // This is just to avoid the process exiting
 ```
