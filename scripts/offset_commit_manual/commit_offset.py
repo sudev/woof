@@ -38,9 +38,8 @@ def commit_offsets_in_kafka(broker, group_name, group_dict):
             cons.seek(tp, int(offset))
             # commit it
             cons.commit()
-            time.sleep(8)
+            time.sleep(1)
     cons.close()
-    time.sleep(1)
 
 
 def main():

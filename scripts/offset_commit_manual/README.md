@@ -1,4 +1,13 @@
-Usuage: 
+A python script to commit offsets to Kafka. 
+Assumes the offset store to be Kafka, should work with brokers with version > `0.82`.
+
+Requirements: 
+
+```
+pip install kafka-python
+```
+
+Usage: 
 
 ```
 python commit_offset.py kafkabrokerip:port sample_json.json
