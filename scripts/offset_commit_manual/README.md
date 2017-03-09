@@ -1,3 +1,10 @@
+Prerequisites
+
+``` 
+pip install kafka-python
+```
+
+
 Usuage: 
 
 ```
